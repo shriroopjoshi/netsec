@@ -1,5 +1,6 @@
 package server;
 
+import com.google.gson.GsonBuilder;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -8,7 +9,9 @@ import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -18,6 +21,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import messages.AuthenticationMessage;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import utility.Constants;
 import utility.Initialize;
 
@@ -31,6 +35,7 @@ public class MessagingServer {
     private PrivateKey privateKey;
     private HashMap<String, String> users;
     private HashMap<String, Boolean> onlineUsers;
+    private HashMap<String, ArrayList<String>> buddyList;
 
     public MessagingServer() {
         users = new HashMap<>();
@@ -39,6 +44,8 @@ public class MessagingServer {
         Properties configs = Initialize.loadProperties(configFile);
         Constants.SERVER_PORT = Integer.parseInt(configs.getProperty("server.port"));
         Constants.CIPHER_TYPE = configs.getProperty("app.cipher.type");
+        Constants.BUDDY_LIST = configs.getProperty("server.buddylist");
+        Constants.CLIENT_KEY_PREFIX = configs.getProperty("client.key.path");
         try {
             users = Initialize.getUsers(configs.getProperty("app.users.file"));
             users.keySet().stream().forEach((user) -> {
@@ -46,6 +53,7 @@ public class MessagingServer {
             });
             privateKey = Initialize.getPrivateKey(configs.getProperty("server.privatekey"),
                     configs.getProperty("app.algorithm"));
+            this.buddyList = Initialize.readBuddyList(Constants.BUDDY_LIST);
             serverSocket = new ServerSocket(Constants.SERVER_PORT);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException ex) {
             Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
@@ -59,7 +67,8 @@ public class MessagingServer {
         while (true) {
             Socket socket = serverSocket.accept();
             try {
-                this.authenticateClient(socket);
+                String username = this.authenticateClient(socket);
+                this.sendBuddyList(socket, username);
             } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException ex) {
                 Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -70,17 +79,35 @@ public class MessagingServer {
         serverSocket.close();
     }
 
-    private void authenticateClient(Socket socket) throws IOException, NoSuchAlgorithmException,
+    private String authenticateClient(Socket socket) throws IOException, NoSuchAlgorithmException,
             NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException {
+        String username = null;
         DataInputStream in = new DataInputStream(socket.getInputStream());
-        byte[] message = new byte[256];
-        in.readFully(message);
+        ArrayList<Byte> mess = new ArrayList<>();
+        int blockSize = 256;
+        byte b = 0;
+        b = (byte) in.read();
+        while(b >= 0) {
+            mess.add(b);
+            b = (byte) in.read();
+        }
+        byte[] message = new byte[mess.size()];
+        int i = 0;
+        for (Byte by : mess) {
+            message[i++] = by;
+        }
+        System.out.println("mess");
+        //in.readFully(message);
         Cipher cipher = Cipher.getInstance(Constants.CIPHER_TYPE);
         cipher.init(Cipher.DECRYPT_MODE, this.privateKey);
         String finalMessage = new String(cipher.doFinal(message));
         AuthenticationMessage am = AuthenticationMessage.getObjectFromString(finalMessage);
-        System.out.println("MESSAGE:\n" + am);
+        if (!am.correctHash(am.digest)) {
+            // Message tampered. Relay to client
+            throw new NotImplementedException();
+        }
+        System.out.println("REQUEST:\n" + am);
         String password = users.get(am.getUsername());
         DataOutputStream out = new DataOutputStream(socket.getOutputStream());
         if (password == null) {
@@ -94,6 +121,7 @@ public class MessagingServer {
                 out.writeInt(3);
             } else {
                 System.out.println(am.getUsername() + " logged in");
+                username = am.getUsername();
                 // Success - Code 0
                 out.writeInt(0);
                 onlineUsers.put(am.getUsername(), Boolean.TRUE);
@@ -105,5 +133,34 @@ public class MessagingServer {
         }
         out.close();
         in.close();
+        return username;
+    }
+
+    private void sendBuddyList(Socket socket, String username) throws IOException {
+        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+        ArrayList<String> list = buddyList.get(username);
+        String message = new GsonBuilder().create().toJson(list);
+        System.out.println("buddy list: " + message);
+        byte[] finalMessage = null;
+        try {
+            finalMessage = this.getEncryptedMessage(message, username);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException |
+                InvalidKeySpecException | InvalidKeyException |
+                IllegalBlockSizeException | BadPaddingException ex) {
+            Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        out.write(finalMessage);
+    }
+
+    private byte[] getEncryptedMessage(String message, String username) throws NoSuchAlgorithmException,
+            NoSuchPaddingException, IOException, InvalidKeySpecException,
+            InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        Cipher cipher = Cipher.getInstance(Constants.CIPHER_TYPE);
+        PublicKey publicKey = Initialize.getPublicKey(
+                Constants.CLIENT_KEY_PREFIX + username + Constants.CLIENT_PUBLIC_KEY_SUFFIX,
+                Constants.PUBLIC_KEY_ALGORITHM);
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] finalMessage = cipher.doFinal(message.getBytes());
+        return finalMessage;
     }
 }
