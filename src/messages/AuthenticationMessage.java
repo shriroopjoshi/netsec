@@ -10,16 +10,15 @@ import java.util.logging.Logger;
  *
  * @author shriroop
  */
-public class AuthenticationMessage {
+public class AuthenticationMessage extends Message {
 
     private String username;
-    private String password;
-    private String timestamp;
+    private String password;  
 
     public AuthenticationMessage(String username, String password) {
+        super();
         this.username = username;
         this.password = AuthenticationMessage.getPasswordHash(password);
-        this.timestamp = System.currentTimeMillis() + "";
     }
 
     public String getUsername() {
@@ -36,14 +35,6 @@ public class AuthenticationMessage {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public String getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
     }
 
     public static AuthenticationMessage getObjectFromString(String object) {
@@ -70,9 +61,4 @@ public class AuthenticationMessage {
         }
         return pass;
     }
-
-    public boolean differentTimeStamp(long currentTimeMillis) {
-        return Math.abs(currentTimeMillis - Long.parseLong(this.timestamp)) < 60000;
-    }
-
 }
