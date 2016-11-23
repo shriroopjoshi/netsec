@@ -15,6 +15,8 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -84,6 +86,22 @@ public class Initialize {
                 }
                 line = br.readLine();
             }
+        }
+        return users;
+    }
+
+    public static HashMap<String, ArrayList<String>> readBuddyList(String filename) throws FileNotFoundException, IOException {
+        HashMap<String, ArrayList<String>> users = new HashMap<>();
+        BufferedReader br = new BufferedReader(new FileReader(filename));
+        String line = br.readLine();
+        while (line != null) {
+            String[] split = line.split("=");
+            ArrayList<String> arr = null;
+            if (split.length > 1) {
+                arr = new ArrayList<>(Arrays.asList(split[1].split("\\s*,\\s*")));
+            }
+            users.put(split[0], arr);
+            line = br.readLine();
         }
         return users;
     }
