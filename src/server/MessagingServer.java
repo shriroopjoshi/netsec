@@ -9,6 +9,8 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -74,13 +76,19 @@ public class MessagingServer {
             NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException {
         DataInputStream in = new DataInputStream(socket.getInputStream());
-        byte[] message = new byte[256];
-        in.readFully(message);
+        byte[] message = new byte[2048];
+        int size = in.read(message);
         Cipher cipher = Cipher.getInstance(Constants.CIPHER_TYPE);
         cipher.init(Cipher.DECRYPT_MODE, this.privateKey);
-        String finalMessage = new String(cipher.doFinal(message));
+        String finalMessage = "";
+        int blockSize = 256;
+        int iteration = 1;
+        for (int i = 0; i < size; i += blockSize) {
+            int min = Math.min(message.length, blockSize * iteration);
+            finalMessage += new String(cipher.doFinal(Arrays.copyOfRange(message, i, min)));
+            iteration += 1;
+        }
         AuthenticationMessage am = AuthenticationMessage.getObjectFromString(finalMessage);
-        System.out.println("MESSAGE:\n" + am);
         String password = users.get(am.getUsername());
         DataOutputStream out = new DataOutputStream(socket.getOutputStream());
         if (password == null) {

@@ -10,6 +10,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -67,6 +68,7 @@ public class MessagingClient {
         System.out.print("Password: ");
         String password = br.readLine();
         AuthenticationMessage am = new AuthenticationMessage(username, password);
+        am.insertMessageHash();
         String message = am.toString();
         try {
             int code = this.send(message);
@@ -99,7 +101,30 @@ public class MessagingClient {
         in = new DataInputStream(socket.getInputStream());
         Cipher cipher = Cipher.getInstance(Constants.CIPHER_TYPE);
         cipher.init(Cipher.ENCRYPT_MODE, this.serversPublicKey);
-        byte[] finalMessage = cipher.doFinal(message.getBytes());
+        int blockSize = 214;
+        System.out.println("MESS: " + message);
+        byte[] bytes = message.getBytes();
+        int sizeMultiplier = bytes.length / blockSize;
+        if(bytes.length % blockSize != 0)
+            sizeMultiplier += 1;
+        byte[] finalMessage = new byte[sizeMultiplier * 256];
+        System.out.println("qwer: " + finalMessage.length);
+        int counter = 0;
+        System.out.println("SIZE: " + bytes.length);
+        int iteration = 1;
+        for (int i = 0; i < bytes.length; i += blockSize) {
+            int min = Math.min(bytes.length, blockSize * iteration);
+            System.out.println("Block till " + min);
+            byte[] block = Arrays.copyOfRange(bytes, i, min);
+            byte[] enc = cipher.doFinal(block);
+            System.out.println("ENC: " + enc.length);
+            for (byte b : enc) {
+                finalMessage[counter] = b;
+                counter += 1;
+            }
+            iteration += 1;
+        }
+        System.out.println("LEN: " + finalMessage.length);
         out.write(finalMessage);
         int returnCode = in.readInt();
         in.close();
