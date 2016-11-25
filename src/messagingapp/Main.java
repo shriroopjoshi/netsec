@@ -1,6 +1,6 @@
 package messagingapp;
 
-import client.AuthenticationClient;
+import client.ServerLoginClient;
 import exceptions.TamperedMessageException;
 import java.io.IOException;
 import server.MessagingServer;
@@ -16,7 +16,7 @@ public class Main {
             MessagingServer ms = new MessagingServer();
             ms.start();
         } else {
-            AuthenticationClient mc = new AuthenticationClient();
+            ServerLoginClient mc = new ServerLoginClient();
             mc.start();
         }
     }
