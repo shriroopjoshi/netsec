@@ -70,6 +70,10 @@ public class MessagingServer {
             try {
                 String username = this.authenticateClient(socket);
                 this.sendBuddyList(socket, username);
+                /**
+                 * Space to implement KDC logic
+                 */
+                
             } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidKeySpecException ex) {
                 Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
             }

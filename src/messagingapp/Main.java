@@ -1,6 +1,7 @@
 package messagingapp;
 
-import client.MessagingClient;
+import client.AuthenticationClient;
+import exceptions.TamperedMessageException;
 import java.io.IOException;
 import server.MessagingServer;
 
@@ -10,12 +11,12 @@ import server.MessagingServer;
  */
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, TamperedMessageException {
         if (args[0].equalsIgnoreCase("server")) {
             MessagingServer ms = new MessagingServer();
             ms.start();
         } else {
-            MessagingClient mc = new MessagingClient();
+            AuthenticationClient mc = new AuthenticationClient();
             mc.start();
         }
     }
