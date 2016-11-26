@@ -4,9 +4,9 @@ import exceptions.TamperedMessageException;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -21,6 +21,7 @@ import messages.BuddylistMessage;
 import utility.CommonUtility;
 import utility.Constants;
 import utility.Initialize;
+import utility.Pair;
 
 /**
  *
@@ -31,7 +32,7 @@ public class MessagingServer {
     private ServerSocket serverSocket;
     private PrivateKey privateKey;
     private HashMap<String, String> users;
-    private HashMap<String, SocketAddress> onlineUsers;
+    private HashMap<String, InetSocketAddress> onlineUsers;
     private HashMap<String, ArrayList<String>> buddies;
 
     public MessagingServer() {
@@ -99,8 +100,8 @@ public class MessagingServer {
                 // Replay attack - Code 3
                 out.writeInt(3);
             } else {
-                SocketAddress address = socket.getRemoteSocketAddress();
-                System.out.println(am.getUsername() + " logged in from " + address);
+                InetSocketAddress address = (InetSocketAddress) socket.getRemoteSocketAddress();
+                System.out.println(am.getUsername() + " logged in from " + address.getAddress());
                 // Success - Code 0
                 onlineUsers.put(am.getUsername(), address);
                 username = am.getUsername();
@@ -140,7 +141,20 @@ public class MessagingServer {
         return finalMessage;
     }
 
-    private ArrayList<String> getBuddyList(String username) {
-        return buddies.get(username);
+    private ArrayList<Pair<String, String>> getBuddyList(String username) {
+        ArrayList<String> buddy = buddies.get(username);
+        ArrayList<Pair<String, String>> buddyList = new ArrayList<>();
+        for (String string : buddy) {
+            Pair<String, String> p = new Pair<>();
+            p.setFirst(string);
+            p.setSecond(null);
+            if (onlineUsers.containsKey(string)) {
+                if (onlineUsers.get(string) != null) {
+                    p.setSecond(onlineUsers.get(string).getHostString());
+                }
+            }
+            buddyList.add(p);
+        }
+        return buddyList;
     }
 }

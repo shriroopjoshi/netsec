@@ -1,5 +1,5 @@
 alice=bob,ashwin
 ashwin=alice,bob,shriroop,trudy
 bob=alice,shriroop
-shriroop=alice,bob,shriroop,trudy
+shriroop=alice,bob,ashwin,trudy
 trudy=

@@ -53,8 +53,8 @@ public class Message {
         return timestamp;
     }
 
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
+    public void insertTimestamp() {
+        this.timestamp = System.currentTimeMillis() + "";
     }
     
     

@@ -6,8 +6,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -16,14 +16,12 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import messages.AuthenticationMessage;
 import messages.BuddylistMessage;
 import utility.CommonUtility;
 import utility.Constants;
 import utility.Initialize;
+import utility.Pair;
 
 /**
  *
@@ -34,7 +32,7 @@ public class ServerLoginClient {
     private Socket socket;
     private PrivateKey privateKey;
     private PublicKey serversPublicKey;
-    private ArrayList<String> buddyList;
+    private ArrayList<Pair<String, String>> buddyList;
     private String username;
 
     public ServerLoginClient() {
@@ -57,13 +55,14 @@ public class ServerLoginClient {
     }
 
     public void start() throws IOException, TamperedMessageException {
+        System.out.println("MessagingApp started");
+        System.out.println("Connecting to server - " + Constants.SERVER_ADDRESS);
         socket = new Socket(Constants.SERVER_ADDRESS, Constants.SERVER_PORT);
         if (this.authenticateClient()) {
             this.populateBuddyList();
             // TODO: Launch the server socket to listen for all incoming message
             if (this.buddyList == null) {
                 System.out.println("Awww. You're so lonely!");
-                System.out.println("This application is just a headache to you!");
                 System.out.println("Exiting\n");
                 /**
                  * Space to implement LOGOUT functionality
@@ -71,17 +70,31 @@ public class ServerLoginClient {
                 //this.logout();
                 System.exit(0);
             }
+            ServerSocket client = new ServerSocket(Constants.CLIENT_PORT);
+            ClientService clientService = new ClientService(client, this.username, this.serversPublicKey, this.privateKey, this.socket);
+            clientService.start();
             System.out.println("Buddy list:");
             for (int i = 0; i < buddyList.size(); i++) {
-                System.out.println((i + 1) + ". " + buddyList.get(i));
+                System.out.print((i + 1) + ". " + buddyList.get(i).getFirst());
+                if (buddyList.get(i).getSecond() != null) {
+                    System.out.println(" (online)");
+                } else {
+                    System.out.println("");
+                }
             }
             System.out.println("[:q!] to exit");
             BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
             while (true) {
                 String line = br.readLine();
                 if (line.equals(":q!")) {
+                    //this.logout();
                     System.exit(0);
                 }
+                int index = Integer.parseInt(line) - 1;
+                System.out.println("Selected index: " + buddyList.get(index).getFirst());
+                System.out.println("Selected index: " + buddyList.get(index).getSecond().toString());
+                AuthenticationClient ac = new AuthenticationClient(serversPublicKey, privateKey, buddyList.get(index), username);
+                ac.authenticate();
             }
         } else {
             System.out.println("Exiting.");
