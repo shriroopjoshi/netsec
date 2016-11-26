@@ -60,14 +60,20 @@ public class ClientService extends Thread {
             return;
         }
         int Nb = (int) Math.floor(Math.random() * 100);
-        String sender = fm.getSender();
         byte[] payload = fm.getPayload();
         FirstMessagePayload fmp = new FirstMessagePayload(Nb, fm.getNc(), fm.getSender(), fm.getReceiver());
         byte[] encrypt = CommonUtility.encrypt(this.serversPublicKey, fmp.toString());
         DataOutputStream sout = new DataOutputStream(this.server.getOutputStream());
         sout.write(payload);
         sout.write(encrypt);
+        /**
+         * No programming done on server to read these messages and generate Secret key
+         */
         DataInputStream sin = new DataInputStream(this.server.getInputStream());
+        // An offence again!
+        byte[] data = new byte[2048];
+        sin.readFully(data);
+        
     }
 
 }

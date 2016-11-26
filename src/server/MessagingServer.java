@@ -144,7 +144,7 @@ public class MessagingServer {
     private ArrayList<Pair<String, String>> getBuddyList(String username) {
         ArrayList<String> buddy = buddies.get(username);
         ArrayList<Pair<String, String>> buddyList = new ArrayList<>();
-        for (String string : buddy) {
+        buddy.stream().map((string) -> {
             Pair<String, String> p = new Pair<>();
             p.setFirst(string);
             p.setSecond(null);
@@ -153,8 +153,10 @@ public class MessagingServer {
                     p.setSecond(onlineUsers.get(string).getHostString());
                 }
             }
+            return p;
+        }).forEach((p) -> {
             buddyList.add(p);
-        }
+        });
         return buddyList;
     }
 }
