@@ -1,6 +1,9 @@
 package messages;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import utility.Pair;
 
@@ -18,7 +21,10 @@ public class BuddylistMessage extends Message {
     }
 
     public static BuddylistMessage getObjectFromString(String object) {
-        return new GsonBuilder().create().fromJson(object, BuddylistMessage.class);
+        Gson create = new GsonBuilder().create();
+        JsonReader reader = new JsonReader(new StringReader(object));
+        reader.setLenient(true);
+        return create.fromJson(reader, BuddylistMessage.class);
     }
 
     public ArrayList<Pair<String, String>> getBuddyList() {

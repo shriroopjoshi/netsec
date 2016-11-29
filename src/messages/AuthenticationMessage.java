@@ -1,6 +1,9 @@
 package messages;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
+import java.io.StringReader;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
@@ -38,7 +41,10 @@ public class AuthenticationMessage extends Message {
     }
 
     public static AuthenticationMessage getObjectFromString(String object) {
-        return new GsonBuilder().create().fromJson(object, AuthenticationMessage.class);
+        Gson create = new GsonBuilder().create();
+        JsonReader reader = new JsonReader(new StringReader(object));
+        reader.setLenient(true);
+        return create.fromJson(reader, AuthenticationMessage.class);
     }
 
     @Override

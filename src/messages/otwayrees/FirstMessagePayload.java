@@ -1,6 +1,9 @@
 package messages.otwayrees;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
+import java.io.StringReader;
 
 /**
  *
@@ -21,7 +24,10 @@ public class FirstMessagePayload {
     }
 
     public static FirstMessagePayload getObjectFromString(String object) {
-        return new GsonBuilder().create().fromJson(object, FirstMessagePayload.class);
+        Gson create = new GsonBuilder().create();
+        JsonReader reader = new JsonReader(new StringReader(object));
+        reader.setLenient(true);
+        return create.fromJson(reader, FirstMessagePayload.class);
     }
 
     @Override

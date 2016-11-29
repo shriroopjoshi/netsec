@@ -41,7 +41,7 @@ public class ServerLoginClient {
         Constants.SERVER_PORT = Integer.parseInt(configs.getProperty("server.port"));
         Constants.SERVER_ADDRESS = configs.getProperty("server.address");
         Constants.CIPHER_TYPE = configs.getProperty("app.cipher.type");
-        Constants.PUBLIC_KEY_ALGO = configs.getProperty("app.algorithm");
+        Constants.PUBLIC_KEY_ALGO = configs.getProperty("app.publickey.algorithm");
         Constants.CLIENT_KEYS_PATH = configs.getProperty("client.keys.path");
         Constants.CLIENT_PORT = Integer.parseInt(configs.getProperty("client.port"));
         try {

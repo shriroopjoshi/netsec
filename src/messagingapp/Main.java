@@ -14,7 +14,7 @@ public class Main {
     public static void main(String[] args) throws IOException, TamperedMessageException {
         if (args[0].equalsIgnoreCase("server")) {
             MessagingServer ms = new MessagingServer();
-            ms.start();
+            ms.startServer();
         } else {
             ServerLoginClient mc = new ServerLoginClient();
             mc.start();

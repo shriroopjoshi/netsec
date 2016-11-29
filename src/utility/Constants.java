@@ -14,4 +14,5 @@ public class Constants {
     public static String CLIENT_PRIVATE_KEY_SUFFIX = ".private.der";
     public static String PUBLIC_KEY_ALGO;
     public static int CLIENT_PORT;
+    public static String SECRET_KEY_ALGO;
 }

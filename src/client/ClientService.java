@@ -9,8 +9,11 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.SecretKey;
 import messages.otwayrees.FirstMessage;
 import messages.otwayrees.FirstMessagePayload;
+import messages.otwayrees.SecondMessage;
+import messages.otwayrees.SecondMessagePayload;
 import utility.CommonUtility;
 
 /**
@@ -40,15 +43,16 @@ public class ClientService extends Thread {
             try {
                 Socket socket = serverSocket.accept();
                 // Do the authentication part - accepting messages
-                this.authenticate(socket);
-                MessagingClientForm form = new MessagingClientForm(socket);
+                SecretKey key = this.authenticate(socket);
+                MessagingClientForm form = new MessagingClientForm(socket, key);
             } catch (IOException ex) {
                 Logger.getLogger(AuthenticationClient.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
-    private void authenticate(Socket socket) throws IOException {
+    private SecretKey authenticate(Socket socket) throws IOException {
+        SecretKey key = null;
         DataInputStream in = new DataInputStream(socket.getInputStream());
         // Another crime!
         byte[] message = new byte[2048];
@@ -57,7 +61,7 @@ public class ClientService extends Thread {
         System.out.println("Request: " + req);
         FirstMessage fm = FirstMessage.getObjectFromString(req);
         if (!fm.getReceiver().equalsIgnoreCase(this.username)) {
-            return;
+            return null;
         }
         int Nb = (int) Math.floor(Math.random() * 100);
         byte[] payload = fm.getPayload();
@@ -72,8 +76,18 @@ public class ClientService extends Thread {
         DataInputStream sin = new DataInputStream(this.server.getInputStream());
         // An offence again!
         byte[] data = new byte[2048];
-        sin.readFully(data);
-        
+        int sz = sin.read(data);
+        String decrypt = CommonUtility.decrypt(privateKey, message, sz);
+        SecondMessage sm = SecondMessage.getObjectFromString(decrypt);
+        byte[] payloadTwo = sm.getPayloadTwo();
+        String payloadTwoString = CommonUtility.decrypt(this.privateKey, payloadTwo, payloadTwo.length);
+        SecondMessagePayload payloadT = SecondMessagePayload.getObjectFromString(payloadTwoString);
+        if(payloadT.getN() == Nb) {
+            key = payloadT.getSecretKey();
+        }
+        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+        out.write(sm.getPayloadOne());
+        return key;
     }
 
 }

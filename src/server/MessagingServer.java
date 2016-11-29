@@ -10,14 +10,20 @@ import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import messages.AuthenticationMessage;
 import messages.BuddylistMessage;
+import messages.otwayrees.FirstMessagePayload;
+import messages.otwayrees.SecondMessage;
+import messages.otwayrees.SecondMessagePayload;
 import utility.CommonUtility;
 import utility.Constants;
 import utility.Initialize;
@@ -43,7 +49,8 @@ public class MessagingServer {
         Constants.SERVER_PORT = Integer.parseInt(configs.getProperty("server.port"));
         Constants.CIPHER_TYPE = configs.getProperty("app.cipher.type");
         Constants.CLIENT_KEYS_PATH = configs.getProperty("client.keys.path");
-        Constants.PUBLIC_KEY_ALGO = configs.getProperty("app.algorithm");
+        Constants.PUBLIC_KEY_ALGO = configs.getProperty("app.publickey.algorithm");
+        Constants.SECRET_KEY_ALGO = configs.getProperty("app.secretkey.algorithm");
         try {
             users = Initialize.getUsers(configs.getProperty("app.users.file"));
             buddies = Initialize.readBuddyList(configs.getProperty("app.buddy.list.file"));
@@ -51,7 +58,7 @@ public class MessagingServer {
                 onlineUsers.put(user, null);
             });
             privateKey = Initialize.getPrivateKey(configs.getProperty("server.privatekey"),
-                    configs.getProperty("app.algorithm"));
+                    Constants.PUBLIC_KEY_ALGO);
             serverSocket = new ServerSocket(Constants.SERVER_PORT);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException ex) {
             Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
@@ -60,20 +67,11 @@ public class MessagingServer {
         }
     }
 
-    public void start() throws IOException, TamperedMessageException {
+    public void startServer() throws IOException, TamperedMessageException {
         System.out.println("Server started");
         while (true) {
             Socket socket = serverSocket.accept();
-            try {
-                String username = this.authenticateClient(socket);
-                this.sendBuddyList(socket, username);
-                /**
-                 * Space to implement KDC logic
-                 */
-            } catch (NoSuchAlgorithmException | InvalidKeySpecException ex) {
-                Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
+            new ThreadedServer(socket).start();
         }
     }
 
@@ -144,7 +142,7 @@ public class MessagingServer {
     private ArrayList<Pair<String, String>> getBuddyList(String username) {
         ArrayList<String> buddy = buddies.get(username);
         ArrayList<Pair<String, String>> buddyList = new ArrayList<>();
-        buddy.stream().map((string) -> {
+        for (String string : buddy) {
             Pair<String, String> p = new Pair<>();
             p.setFirst(string);
             p.setSecond(null);
@@ -153,10 +151,66 @@ public class MessagingServer {
                     p.setSecond(onlineUsers.get(string).getHostString());
                 }
             }
-            return p;
-        }).forEach((p) -> {
             buddyList.add(p);
-        });
+        }
         return buddyList;
+    }
+
+    private boolean authenticateOtwayRees(Socket socket) throws IOException {
+        boolean authenticate = false;
+        byte[] payloadOne = new byte[2048];
+        byte[] payloadTwo = new byte[2048];
+        DataInputStream in = new DataInputStream(socket.getInputStream());
+        int sizeOne = in.read(payloadOne);
+        int sizeTwo = in.read(payloadTwo);
+        String objectOne = CommonUtility.decrypt(privateKey, payloadOne, sizeOne);
+        String objectTwo = CommonUtility.decrypt(privateKey, payloadTwo, sizeTwo);
+        FirstMessagePayload msgPayloadOne = FirstMessagePayload.getObjectFromString(objectOne);
+        FirstMessagePayload msgPayloadTwo = FirstMessagePayload.getObjectFromString(objectOne);
+        if (msgPayloadOne.getNc() == msgPayloadTwo.getNc()) {
+            try {
+                KeyGenerator keygen = KeyGenerator.getInstance(Constants.SECRET_KEY_ALGO);
+                SecureRandom sr = new SecureRandom((msgPayloadOne.getSender() + msgPayloadOne.getReceiver()).getBytes());
+                keygen.init(sr);
+                SecretKey key = keygen.generateKey();
+                String sender = msgPayloadOne.getSender();
+                String receiver = msgPayloadOne.getReceiver();
+                PublicKey sendersPublicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + sender + Constants.CLIENT_PRIVATE_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
+                PublicKey receiversPublicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + receiver + Constants.CLIENT_PRIVATE_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
+                byte[] senderPayload = CommonUtility.encrypt(sendersPublicKey, new SecondMessagePayload(msgPayloadOne.getNa(), key).toString());
+                byte[] recieverPayload = CommonUtility.encrypt(sendersPublicKey, new SecondMessagePayload(msgPayloadOne.getNa(), key).toString());
+                SecondMessage sm = new SecondMessage(msgPayloadOne.getNc(), payloadOne, payloadTwo);
+                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+                out.write(sm.toString().getBytes());
+                authenticate = true;
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException ex) {
+                Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return authenticate;
+    }
+
+    class ThreadedServer extends Thread {
+
+        final Socket socket;
+
+        public ThreadedServer(Socket socket) {
+            this.socket = socket;
+        }
+
+        @Override
+        public void run() {
+            try {
+                String username = authenticateClient(socket);
+                sendBuddyList(socket, username);
+                /**
+                 * Space to implement KDC logic
+                 */
+                authenticateOtwayRees(socket);
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException | TamperedMessageException ex) {
+                Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
     }
 }
