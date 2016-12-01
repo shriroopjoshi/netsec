@@ -7,6 +7,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.SecretKey;
@@ -75,10 +76,9 @@ public class ClientService extends Thread {
          */
         DataInputStream sin = new DataInputStream(this.server.getInputStream());
         // An offence again!
-        byte[] data = new byte[2048];
+        byte[] data = new byte[65536];
         int sz = sin.read(data);
-        String decrypt = CommonUtility.decrypt(privateKey, message, sz);
-        SecondMessage sm = SecondMessage.getObjectFromString(decrypt);
+        SecondMessage sm = SecondMessage.getObjectFromString(new String(Arrays.copyOfRange(data, 0, sz)));
         byte[] payloadTwo = sm.getPayloadTwo();
         String payloadTwoString = CommonUtility.decrypt(this.privateKey, payloadTwo, payloadTwo.length);
         SecondMessagePayload payloadT = SecondMessagePayload.getObjectFromString(payloadTwoString);

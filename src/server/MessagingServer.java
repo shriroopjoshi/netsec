@@ -115,6 +115,7 @@ public class MessagingServer {
     }
 
     private void sendBuddyList(Socket socket, String username) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        System.out.println(Constants.CLIENT_KEYS_PATH + username + Constants.CLIENT_PUBLIC_KEY_SUFFIX + "\nALGO " + Constants.PUBLIC_KEY_ALGO);
         PublicKey publicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + username + Constants.CLIENT_PUBLIC_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
         BuddylistMessage message = new BuddylistMessage(this.getBuddyList(username));
         message.insertMessageHash();
@@ -166,7 +167,9 @@ public class MessagingServer {
         String objectOne = CommonUtility.decrypt(privateKey, payloadOne, sizeOne);
         String objectTwo = CommonUtility.decrypt(privateKey, payloadTwo, sizeTwo);
         FirstMessagePayload msgPayloadOne = FirstMessagePayload.getObjectFromString(objectOne);
-        FirstMessagePayload msgPayloadTwo = FirstMessagePayload.getObjectFromString(objectOne);
+        FirstMessagePayload msgPayloadTwo = FirstMessagePayload.getObjectFromString(objectTwo);
+        System.out.println("MSG one:" + msgPayloadOne);
+        System.out.println("MSG two:" + msgPayloadTwo);
         if (msgPayloadOne.getNc() == msgPayloadTwo.getNc()) {
             try {
                 KeyGenerator keygen = KeyGenerator.getInstance(Constants.SECRET_KEY_ALGO);
@@ -175,13 +178,36 @@ public class MessagingServer {
                 SecretKey key = keygen.generateKey();
                 String sender = msgPayloadOne.getSender();
                 String receiver = msgPayloadOne.getReceiver();
-                PublicKey sendersPublicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + sender + Constants.CLIENT_PRIVATE_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
-                PublicKey receiversPublicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + receiver + Constants.CLIENT_PRIVATE_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
+                System.out.println(Constants.CLIENT_KEYS_PATH + sender + Constants.CLIENT_PRIVATE_KEY_SUFFIX + " | "
+                        + Constants.CLIENT_KEYS_PATH + receiver + Constants.CLIENT_PRIVATE_KEY_SUFFIX
+                        + "\nALGO " + Constants.PUBLIC_KEY_ALGO);
+                System.out.println("SENDER: " + sender + " | REC: " + receiver);
+                PublicKey sendersPublicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + sender + Constants.CLIENT_PUBLIC_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
+                PublicKey receiversPublicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + receiver + Constants.CLIENT_PUBLIC_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
                 byte[] senderPayload = CommonUtility.encrypt(sendersPublicKey, new SecondMessagePayload(msgPayloadOne.getNa(), key).toString());
-                byte[] recieverPayload = CommonUtility.encrypt(sendersPublicKey, new SecondMessagePayload(msgPayloadOne.getNa(), key).toString());
-                SecondMessage sm = new SecondMessage(msgPayloadOne.getNc(), payloadOne, payloadTwo);
+                byte[] recieverPayload = CommonUtility.encrypt(receiversPublicKey, new SecondMessagePayload(msgPayloadTwo.getNa(), key).toString());
+                /**
+                 * Erase this section
+                 * 
+                 */
+                PrivateKey privateKey1 = Initialize.getPrivateKey(Constants.CLIENT_KEYS_PATH + receiver + Constants.CLIENT_PRIVATE_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
+                String decrypt = CommonUtility.decrypt(privateKey1, recieverPayload, recieverPayload.length);
+                SecondMessagePayload oo = SecondMessagePayload.getObjectFromString(decrypt);
+                System.out.println(oo);
+                SecretKey secretKey = oo.getSecretKey();
+                /**
+                 * Section end
+                 */
+                SecondMessage sm = new SecondMessage(msgPayloadOne.getNc(), senderPayload, recieverPayload);
+                //byte[] encrypt = CommonUtility.encrypt(receiversPublicKey, sm.toString());
                 DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                out.write(sm.toString().getBytes());
+                System.out.println(sm);
+                byte[] str = sm.toString().getBytes();
+                for (byte b : str) {
+                    System.out.print(b + " ");
+                }
+                System.out.println("\nSIZZE " + str.length);
+                out.write(str);
                 authenticate = true;
             } catch (NoSuchAlgorithmException | InvalidKeySpecException ex) {
                 Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);
