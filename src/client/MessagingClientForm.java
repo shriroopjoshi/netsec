@@ -5,26 +5,109 @@
  */
 package client;
 
+import java.awt.event.KeyEvent;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.crypto.SecretKey;
+import messages.TextMessage;
+import utility.CommonUtility;
 
 /**
  *
  * @author shriroop
  */
-public class MessagingClientForm extends javax.swing.JFrame implements Runnable {
+public class MessagingClientForm extends javax.swing.JFrame {
 
     /**
      * Creates new form MessagingClientForm
      */
     private SecretKey key;
-    public MessagingClientForm() {
+    private boolean initiator;
+    private Socket socket;
+    private String user;
+    private String buddy;
+
+    private MessagingClientForm() {
         initComponents();
     }
 
-    MessagingClientForm(Socket socket, SecretKey key) {
+    public MessagingClientForm(Socket socket, SecretKey key, boolean initiator, String user, String buddy) {
+        initComponents();
         this.key = key;
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        this.initiator = initiator;
+        this.socket = socket;
+        this.user = user;
+        this.buddy = buddy;
+        this.setTitle("Messaging App - " + buddy);
+        new Receive().start();
+    }
+
+    class Send extends Thread {
+
+        private final TextMessage message;
+
+        public Send(String message) {
+            this.message = new TextMessage(message);
+        }
+
+        @Override
+        public void run() {
+            try {
+                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+                System.out.println(message.getMessage());
+                byte[] encrypt = CommonUtility.encrypt(key, message.getMessage());
+                out.write(encrypt);
+                if (message.getMessage().equalsIgnoreCase(":q!")) {
+                    socket.close();
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(MessagingClientForm.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
+    }
+
+    class Receive extends Thread {
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    DataInputStream in = new DataInputStream(socket.getInputStream());
+                    byte[] b = new byte[2048];
+                    int sz = in.read(b);
+                    String decrypt = CommonUtility.decrypt(key, b, sz);
+                    TextMessage m = TextMessage.getObjectFromString(decrypt);
+                    if (m.getMessage().equalsIgnoreCase(":q!")) {
+                        break;
+                    }
+                    synchronized (jTextArea2) {
+                        jTextArea2.setText(jTextArea2.getText() + "\n" + buddy + ": " + m.getMessage());
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(MessagingClientForm.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            try {
+                socket.close();
+            } catch (IOException ex) {
+                Logger.getLogger(MessagingClientForm.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    public void send() {
+        String text = jTextArea1.getText();
+        jTextArea1.setText("");
+        synchronized (jTextArea2) {
+            jTextArea2.setText(jTextArea2.getText() + "\nMe: " + text);
+        }
+        new Send(text).start();
     }
 
     /**
@@ -39,16 +122,38 @@ public class MessagingClientForm extends javax.swing.JFrame implements Runnable 
         jScrollPane1 = new javax.swing.JScrollPane();
         jTextArea1 = new javax.swing.JTextArea();
         jButton1 = new javax.swing.JButton();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jTextArea2 = new javax.swing.JTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                MessagingClientForm.this.windowClosing(evt);
+            }
+        });
 
         jTextArea1.setBackground(new java.awt.Color(255, 255, 255));
         jTextArea1.setColumns(20);
         jTextArea1.setForeground(new java.awt.Color(0, 0, 0));
         jTextArea1.setRows(5);
+        jTextArea1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                jTextArea1KeyReleased(evt);
+            }
+        });
         jScrollPane1.setViewportView(jTextArea1);
 
-        jButton1.setText("jButton1");
+        jButton1.setText("Send");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        jTextArea2.setBackground(new java.awt.Color(255, 255, 255));
+        jTextArea2.setColumns(20);
+        jTextArea2.setRows(5);
+        jScrollPane2.setViewportView(jTextArea2);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -57,12 +162,15 @@ public class MessagingClientForm extends javax.swing.JFrame implements Runnable 
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 584, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 83, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 83, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(jScrollPane2)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(409, 409, 409)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 403, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 63, Short.MAX_VALUE)
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)))
@@ -71,49 +179,28 @@ public class MessagingClientForm extends javax.swing.JFrame implements Runnable 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(MessagingClientForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(MessagingClientForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(MessagingClientForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(MessagingClientForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        send();
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void windowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_windowClosing
+        // TODO add your handling code here:
+        new Send(":q!").start();
+    }//GEN-LAST:event_windowClosing
+
+    private void jTextArea1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextArea1KeyReleased
+        // TODO add your handling code here:
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            send();
         }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new MessagingClientForm().setVisible(true);
-            }
-        });
-    }
-
-    @Override
-    public void run() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+    }//GEN-LAST:event_jTextArea1KeyReleased
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTextArea jTextArea1;
+    private javax.swing.JTextArea jTextArea2;
     // End of variables declaration//GEN-END:variables
+
 }

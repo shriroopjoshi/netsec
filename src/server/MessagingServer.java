@@ -47,7 +47,12 @@ public class MessagingServer {
         String configFile = "resources/config.properties";
         Properties configs = Initialize.loadProperties(configFile);
         Constants.SERVER_PORT = Integer.parseInt(configs.getProperty("server.port"));
-        Constants.CIPHER_TYPE = configs.getProperty("app.cipher.type");
+        Constants.RSA_CIPHER_TYPE = configs.getProperty("app.rsa.cipher.type");
+        Constants.RSA_BLOCK_SIZE_ENCRYPT = Integer.parseInt("app.rsa.cipher.type.size.encrypt");
+        Constants.RSA_BLOCK_SIZE_DECRYPT = Integer.parseInt("app.rsa.cipher.type.size.decrypt");
+        Constants.AES_CIPHER_TYPE = configs.getProperty("app.aes.cipher.type");
+        Constants.AES_BLOCK_SIZE_ENCRYPT = Integer.parseInt(configs.getProperty("app.aes.cipher.type.size.encrypt"));
+        Constants.AES_BLOCK_SIZE_DECRYPT = Integer.parseInt(configs.getProperty("app.aes.cipher.type.size.decrypt"));
         Constants.CLIENT_KEYS_PATH = configs.getProperty("client.keys.path");
         Constants.PUBLIC_KEY_ALGO = configs.getProperty("app.publickey.algorithm");
         Constants.SECRET_KEY_ALGO = configs.getProperty("app.secretkey.algorithm");

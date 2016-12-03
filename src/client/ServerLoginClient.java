@@ -40,10 +40,16 @@ public class ServerLoginClient {
         Properties configs = Initialize.loadProperties(configFile);
         Constants.SERVER_PORT = Integer.parseInt(configs.getProperty("server.port"));
         Constants.SERVER_ADDRESS = configs.getProperty("server.address");
-        Constants.CIPHER_TYPE = configs.getProperty("app.cipher.type");
+        Constants.AES_CIPHER_TYPE = configs.getProperty("app.aes.cipher.type");
+        Constants.AES_BLOCK_SIZE_ENCRYPT = Integer.parseInt(configs.getProperty("app.aes.cipher.type.size.encrypt"));
+        Constants.AES_BLOCK_SIZE_DECRYPT = Integer.parseInt(configs.getProperty("app.aes.cipher.type.size.decrypt"));
+        Constants.RSA_CIPHER_TYPE = configs.getProperty("app.rsa.cipher.type");
+        Constants.RSA_BLOCK_SIZE_ENCRYPT = Integer.parseInt(configs.getProperty("app.rsa.cipher.type.size.encrypt"));
+        Constants.RSA_BLOCK_SIZE_DECRYPT = Integer.parseInt(configs.getProperty("app.rsa.cipher.type.size.decrypt"));
         Constants.PUBLIC_KEY_ALGO = configs.getProperty("app.publickey.algorithm");
         Constants.CLIENT_KEYS_PATH = configs.getProperty("client.keys.path");
         Constants.CLIENT_PORT = Integer.parseInt(configs.getProperty("client.port"));
+        Constants.SECRET_KEY_ALGO = configs.getProperty("app.secretkey.algorithm");
         try {
             serversPublicKey = Initialize.getPublicKey(configs.getProperty("server.publickey"), Constants.PUBLIC_KEY_ALGO);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException ex) {

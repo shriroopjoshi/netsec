@@ -8,8 +8,12 @@
             <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/src/client/ClientService.java</file>
             <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/src/server/MessagingServer.java</file>
             <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/src/utility/Initialize.java</file>
+            <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/src/messages/otwayrees/SecondMessage.java</file>
             <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/src/client/ServerLoginClient.java</file>
             <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/src/client/AuthenticationClient.java</file>
+            <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/resources/config.properties</file>
+            <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/src/utility/CommonUtility.java</file>
+            <file>file:/C:/Users/shrir/Documents/NetBeansProjects/MessagingApp/src/messages/otwayrees/SecondMessagePayload.java</file>
         </group>
     </open-files>
 </project-private>
