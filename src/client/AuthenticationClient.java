@@ -39,7 +39,6 @@ public class AuthenticationClient {
         DataOutputStream out = new DataOutputStream(socket.getOutputStream());
         DataInputStream in = new DataInputStream(socket.getInputStream());
         FirstMessage fm = new FirstMessage(this.username, buddy.getFirst(), serversPublicKey);
-        System.out.println(fm);
         out.write(fm.toString().getBytes());
         byte[] b = new byte[2048];
         int sz = in.read(b);

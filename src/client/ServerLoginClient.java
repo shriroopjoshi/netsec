@@ -98,7 +98,6 @@ public class ServerLoginClient {
                 }
                 int index = Integer.parseInt(line) - 1;
                 System.out.println("Selected index: " + buddyList.get(index).getFirst());
-                System.out.println("Selected index: " + buddyList.get(index).getSecond().toString());
                 AuthenticationClient ac = new AuthenticationClient(serversPublicKey, privateKey, buddyList.get(index), username);
                 ac.authenticate();
             }

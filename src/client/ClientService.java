@@ -66,7 +66,6 @@ public class ClientService extends Thread {
         byte[] message = new byte[2048];
         int size = in.read(message);
         String req = new String(message);
-        System.out.println("Request: " + req);
         FirstMessage fm = FirstMessage.getObjectFromString(req);
         if (!fm.getReceiver().equalsIgnoreCase(this.username)) {
             return null;

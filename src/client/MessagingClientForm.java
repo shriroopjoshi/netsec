@@ -5,14 +5,12 @@
  */
 package client;
 
+import java.awt.Color;
 import java.awt.event.KeyEvent;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.crypto.SecretKey;
 import messages.TextMessage;
 import utility.CommonUtility;
@@ -59,14 +57,12 @@ public class MessagingClientForm extends javax.swing.JFrame {
         public void run() {
             try {
                 DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                System.out.println(message.getMessage());
-                byte[] encrypt = CommonUtility.encrypt(key, message.getMessage());
+                byte[] encrypt = CommonUtility.encrypt(key, message.toString());
                 out.write(encrypt);
                 if (message.getMessage().equalsIgnoreCase(":q!")) {
                     socket.close();
                 }
             } catch (IOException ex) {
-                Logger.getLogger(MessagingClientForm.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
 
@@ -84,26 +80,31 @@ public class MessagingClientForm extends javax.swing.JFrame {
                     String decrypt = CommonUtility.decrypt(key, b, sz);
                     TextMessage m = TextMessage.getObjectFromString(decrypt);
                     if (m.getMessage().equalsIgnoreCase(":q!")) {
+                        synchronized (jTextArea1) {
+                            jTextArea1.setEnabled(false);
+                            jTextArea1.setBackground(Color.GRAY);
+                        }
                         break;
                     }
                     synchronized (jTextArea2) {
                         jTextArea2.setText(jTextArea2.getText() + "\n" + buddy + ": " + m.getMessage());
                     }
                 } catch (IOException ex) {
-                    Logger.getLogger(MessagingClientForm.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             try {
                 socket.close();
             } catch (IOException ex) {
-                Logger.getLogger(MessagingClientForm.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
     public void send() {
-        String text = jTextArea1.getText();
-        jTextArea1.setText("");
+        String text;
+        synchronized (jTextArea1) {
+            text = jTextArea1.getText();
+            jTextArea1.setText("");
+        }
         synchronized (jTextArea2) {
             jTextArea2.setText(jTextArea2.getText() + "\nMe: " + text);
         }
@@ -125,7 +126,6 @@ public class MessagingClientForm extends javax.swing.JFrame {
         jScrollPane2 = new javax.swing.JScrollPane();
         jTextArea2 = new javax.swing.JTextArea();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 MessagingClientForm.this.windowClosing(evt);
@@ -150,6 +150,7 @@ public class MessagingClientForm extends javax.swing.JFrame {
             }
         });
 
+        jTextArea2.setEditable(false);
         jTextArea2.setBackground(new java.awt.Color(255, 255, 255));
         jTextArea2.setColumns(20);
         jTextArea2.setRows(5);
