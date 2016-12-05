@@ -1,19 +1,19 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package client;
 
+import exceptions.TamperedMessageException;
 import java.awt.Color;
 import java.awt.event.KeyEvent;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.crypto.SecretKey;
 import messages.TextMessage;
 import utility.CommonUtility;
+import utility.Constants;
 
 /**
  *
@@ -51,6 +51,7 @@ public class MessagingClientForm extends javax.swing.JFrame {
 
         public Send(String message) {
             this.message = new TextMessage(message);
+            this.message.insertMessageHash();
         }
 
         @Override
@@ -58,6 +59,11 @@ public class MessagingClientForm extends javax.swing.JFrame {
             try {
                 DataOutputStream out = new DataOutputStream(socket.getOutputStream());
                 byte[] encrypt = CommonUtility.encrypt(key, message.toString());
+                if (Constants.VERBOSE) {
+                    synchronized (jTextArea2) {
+                        jTextArea2.setText(jTextArea2.getText() + "\n" + CommonUtility.verbose(encrypt));
+                    }
+                }
                 out.write(encrypt);
                 if (message.getMessage().equalsIgnoreCase(":q!")) {
                     socket.close();
@@ -77,8 +83,14 @@ public class MessagingClientForm extends javax.swing.JFrame {
                     DataInputStream in = new DataInputStream(socket.getInputStream());
                     byte[] b = new byte[2048];
                     int sz = in.read(b);
+                    if(Constants.VERBOSE) {
+                        synchronized (jTextArea2) {
+                            jTextArea2.setText(jTextArea2.getText() + "\n" + CommonUtility.verbose(Arrays.copyOfRange(b, 0, sz)));
+                        }
+                    }
                     String decrypt = CommonUtility.decrypt(key, b, sz);
                     TextMessage m = TextMessage.getObjectFromString(decrypt);
+                    m.verifyMessageHash();
                     if (m.getMessage().equalsIgnoreCase(":q!")) {
                         synchronized (jTextArea1) {
                             jTextArea1.setEnabled(false);
@@ -90,6 +102,11 @@ public class MessagingClientForm extends javax.swing.JFrame {
                         jTextArea2.setText(jTextArea2.getText() + "\n" + buddy + ": " + m.getMessage());
                     }
                 } catch (IOException ex) {
+                } catch (TamperedMessageException ex) {
+                    synchronized (jTextArea2) {
+                        jTextArea2.setText(jTextArea2.getText() + "\n" + buddy + ": " + "[MESSAGE TAMPERED]");
+                    }
+                    Logger.getLogger(MessagingClientForm.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             try {
@@ -124,7 +141,6 @@ public class MessagingClientForm extends javax.swing.JFrame {
         jTextArea1 = new javax.swing.JTextArea();
         jButton1 = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
-        jTextArea2 = new javax.swing.JTextArea();
 
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
@@ -201,7 +217,7 @@ public class MessagingClientForm extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTextArea jTextArea1;
-    private javax.swing.JTextArea jTextArea2;
+    private final javax.swing.JTextArea jTextArea2 = new javax.swing.JTextArea();
     // End of variables declaration//GEN-END:variables
 
 }

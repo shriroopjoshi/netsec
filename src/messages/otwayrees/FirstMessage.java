@@ -26,6 +26,7 @@ public class FirstMessage extends Message {
         this.sender = sender;
         this.receiver = receiver;
         FirstMessagePayload fmp = new FirstMessagePayload(Na, Nc, this.sender, this.receiver);
+        fmp.insertMessageHash();
         this.payload = CommonUtility.encrypt(serversPublicKey, fmp.toString());
     }
     

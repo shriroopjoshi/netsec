@@ -13,6 +13,7 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -130,6 +131,8 @@ public class MessagingServer {
         DataOutputStream out;
         out = new DataOutputStream(socket.getOutputStream());
         byte[] finalMessage = CommonUtility.encrypt(publicKey, message);
+        CommonUtility.verbose(message, true);
+        CommonUtility.verbose(finalMessage, true);
         out.write(finalMessage);
         return 0;
     }
@@ -140,14 +143,16 @@ public class MessagingServer {
         // This is a crime. I've hard coded the volume of buffer
         byte[] message = new byte[2048];
         int size = in.read(message);
+        CommonUtility.verbose(Arrays.copyOfRange(message, 0, size), true);
         finalMessage = CommonUtility.decrypt(privateKey, message, size);
+        CommonUtility.verbose(finalMessage, true);
         return finalMessage;
     }
 
     private ArrayList<Pair<String, String>> getBuddyList(String username) {
         ArrayList<String> buddy = buddies.get(username);
         ArrayList<Pair<String, String>> buddyList = new ArrayList<>();
-        for (String string : buddy) {
+        buddy.stream().map((string) -> {
             Pair<String, String> p = new Pair<>();
             p.setFirst(string);
             p.setSecond(null);
@@ -156,22 +161,30 @@ public class MessagingServer {
                     p.setSecond(onlineUsers.get(string).getHostString());
                 }
             }
+            return p;
+        }).forEach((p) -> {
             buddyList.add(p);
-        }
+        });
         return buddyList;
     }
 
-    private boolean authenticateOtwayRees(Socket socket) throws IOException {
+    private boolean authenticateOtwayRees(Socket socket) throws IOException, TamperedMessageException {
         boolean authenticate = false;
         byte[] payloadOne = new byte[2048];
         byte[] payloadTwo = new byte[2048];
         DataInputStream in = new DataInputStream(socket.getInputStream());
         int sizeOne = in.read(payloadOne);
         int sizeTwo = in.read(payloadTwo);
+        CommonUtility.verbose(Arrays.copyOfRange(payloadOne, 0, sizeOne), true);
+        CommonUtility.verbose(Arrays.copyOfRange(payloadTwo, 0, sizeTwo), true);
         String objectOne = CommonUtility.decrypt(privateKey, payloadOne, sizeOne);
         String objectTwo = CommonUtility.decrypt(privateKey, payloadTwo, sizeTwo);
+        CommonUtility.verbose(objectOne, true);
+        CommonUtility.verbose(objectTwo, true);
         FirstMessagePayload msgPayloadOne = FirstMessagePayload.getObjectFromString(objectOne);
+        msgPayloadOne.verifyMessageHash();
         FirstMessagePayload msgPayloadTwo = FirstMessagePayload.getObjectFromString(objectTwo);
+        msgPayloadTwo.verifyMessageHash();
         if (msgPayloadOne.getNc() == msgPayloadTwo.getNc()) {
             try {
                 KeyGenerator keygen = KeyGenerator.getInstance(Constants.SECRET_KEY_ALGO);
@@ -182,9 +195,19 @@ public class MessagingServer {
                 String receiver = msgPayloadOne.getReceiver();
                 PublicKey sendersPublicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + sender + Constants.CLIENT_PUBLIC_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
                 PublicKey receiversPublicKey = Initialize.getPublicKey(Constants.CLIENT_KEYS_PATH + receiver + Constants.CLIENT_PUBLIC_KEY_SUFFIX, Constants.PUBLIC_KEY_ALGO);
-                byte[] senderPayload = CommonUtility.encrypt(sendersPublicKey, new SecondMessagePayload(msgPayloadOne.getNa(), key).toString());
-                byte[] recieverPayload = CommonUtility.encrypt(receiversPublicKey, new SecondMessagePayload(msgPayloadTwo.getNa(), key).toString());
+                SecondMessagePayload secondMessagePayloadOne = new SecondMessagePayload(msgPayloadOne.getNa(), key);
+                secondMessagePayloadOne.insertMessageHash();
+                CommonUtility.verbose(secondMessagePayloadOne.toString(), true);
+                byte[] senderPayload = CommonUtility.encrypt(sendersPublicKey, secondMessagePayloadOne.toString());
+                CommonUtility.verbose(senderPayload, true);
+                SecondMessagePayload secondMessagePayloadTwo = new SecondMessagePayload(msgPayloadTwo.getNa(), key);
+                secondMessagePayloadTwo.insertMessageHash();
+                CommonUtility.verbose(secondMessagePayloadTwo.toString(), true);
+                byte[] recieverPayload = CommonUtility.encrypt(receiversPublicKey, secondMessagePayloadTwo.toString());
+                CommonUtility.verbose(recieverPayload, true);
                 SecondMessage sm = new SecondMessage(msgPayloadOne.getNc(), senderPayload, recieverPayload);
+                sm.insertMessageHash();
+                CommonUtility.verbose(sm.toString(), true);
                 DataOutputStream out = new DataOutputStream(socket.getOutputStream());
                 byte[] str = sm.toString().getBytes();
                 out.write(str);
@@ -209,9 +232,6 @@ public class MessagingServer {
             try {
                 String username = authenticateClient(socket);
                 sendBuddyList(socket, username);
-                /**
-                 * Space to implement KDC logic
-                 */
                 authenticateOtwayRees(socket);
             } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException | TamperedMessageException ex) {
                 Logger.getLogger(MessagingServer.class.getName()).log(Level.SEVERE, null, ex);

@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.BadPaddingException;
@@ -18,6 +19,35 @@ import javax.crypto.SecretKey;
  * @author shriroop
  */
 public class CommonUtility {
+    
+    public static void verbose(String message, boolean printOnConsole) {
+        if(Constants.VERBOSE) {
+            System.out.println("[MSG]: " + message);
+        }
+    }
+    
+    public static String verbose(String message) {
+        if(Constants.VERBOSE) {
+            return message;
+        } else {
+            return "";
+        }
+    }
+    
+    public static void verbose(byte[] message, boolean printOnConsole) {
+        if(Constants.VERBOSE) {
+            System.out.print("[ENC_MSG]:");
+            System.out.println(new String(Base64.getEncoder().encode(message)));
+        }
+    }
+    
+    public static String verbose(byte[] message) {
+        if(Constants.VERBOSE) {
+            return "[ENC_MSG]: " + new String(Base64.getEncoder().encode(message));
+        } else {
+            return "";
+        }
+    }
 
     public static byte[] encrypt(PublicKey publicKey, String message) {
         byte[] finalMessage = null;

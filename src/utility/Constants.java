@@ -21,4 +21,5 @@ public class Constants {
     public static int AES_BLOCK_SIZE_ENCRYPT;
     public static int AES_BLOCK_SIZE_DECRYPT;
     public static byte[] IV = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    public static boolean VERBOSE;
 }

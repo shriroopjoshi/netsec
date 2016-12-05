@@ -62,8 +62,8 @@ public class ServerLoginClient {
 
     public void start() throws IOException, TamperedMessageException {
         System.out.println("MessagingApp started");
-        System.out.println("Connecting to server - " + Constants.SERVER_ADDRESS);
         socket = new Socket(Constants.SERVER_ADDRESS, Constants.SERVER_PORT);
+        System.out.println("Connected to server - " + Constants.SERVER_ADDRESS);
         if (this.authenticateClient()) {
             this.populateBuddyList();
             // TODO: Launch the server socket to listen for all incoming message
@@ -120,6 +120,7 @@ public class ServerLoginClient {
         String password = br.readLine();
         AuthenticationMessage am = new AuthenticationMessage(username, password);
         am.insertMessageHash();
+        CommonUtility.verbose(am.toString(), true);
         String message = am.toString();
         int code = this.send(message);
         if (code < 1) {
@@ -146,6 +147,7 @@ public class ServerLoginClient {
         out = new DataOutputStream(socket.getOutputStream());
         in = new DataInputStream(socket.getInputStream());
         byte[] finalMessage = CommonUtility.encrypt(serversPublicKey, message);
+        CommonUtility.verbose(finalMessage, true);
         out.write(finalMessage);
         int returnCode = in.readInt();
         return returnCode;
@@ -166,8 +168,10 @@ public class ServerLoginClient {
         } catch (IOException ex) {
             Logger.getLogger(ServerLoginClient.class.getName()).log(Level.SEVERE, null, ex);
         }
+        CommonUtility.verbose(message, true);
         BuddylistMessage list = BuddylistMessage.getObjectFromString(message);
         if (list.verifyMessageHash()) {
+            CommonUtility.verbose(message, true);
             this.buddyList = list.getBuddyList();
         } else {
             this.buddyList = null;
@@ -181,6 +185,7 @@ public class ServerLoginClient {
         // This is a crime. I've hard coded the volume of buffer
         byte[] message = new byte[4096];
         int size = in.read(message);
+        CommonUtility.verbose(message, true);
         finalMessage = CommonUtility.decrypt(privateKey, message, size);
         return finalMessage;
     }

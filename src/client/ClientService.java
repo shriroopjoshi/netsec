@@ -1,5 +1,6 @@
 package client;
 
+import exceptions.TamperedMessageException;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -55,40 +56,52 @@ public class ClientService extends Thread {
                 });
             } catch (IOException ex) {
                 Logger.getLogger(AuthenticationClient.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (TamperedMessageException ex) {
+                Logger.getLogger(ClientService.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
-    private SecretKey authenticate(Socket socket) throws IOException {
+    private SecretKey authenticate(Socket socket) throws IOException, TamperedMessageException {
         SecretKey key = null;
         DataInputStream in = new DataInputStream(socket.getInputStream());
         // Another crime!
         byte[] message = new byte[2048];
         int size = in.read(message);
+        CommonUtility.verbose(Arrays.copyOfRange(message, 0, size), true);
         String req = new String(message);
         FirstMessage fm = FirstMessage.getObjectFromString(req);
+        fm.verifyMessageHash();
+        CommonUtility.verbose(fm.toString(), true);
         if (!fm.getReceiver().equalsIgnoreCase(this.username)) {
             return null;
         }
         int Nb = (int) Math.floor(Math.random() * 100);
         byte[] payload = fm.getPayload();
         FirstMessagePayload fmp = new FirstMessagePayload(Nb, fm.getNc(), fm.getSender(), fm.getReceiver());
+        fmp.insertMessageHash();
+        CommonUtility.verbose(fmp.toString(), true);
         byte[] encrypt = CommonUtility.encrypt(this.serversPublicKey, fmp.toString());
+        CommonUtility.verbose(encrypt, true);
         DataOutputStream sout = new DataOutputStream(this.server.getOutputStream());
         sout.write(payload);
         sout.write(encrypt);
-        /**
-         * No programming done on server to read these messages and generate
-         * Secret key
-         */
+        // Server generated keys, and sends it back
         DataInputStream sin = new DataInputStream(this.server.getInputStream());
         // An offence again!
         byte[] data = new byte[65536];
         int sz = sin.read(data);
-        SecondMessage sm = SecondMessage.getObjectFromString(new String(Arrays.copyOfRange(data, 0, sz)));
+        byte[] copyOfRange = Arrays.copyOfRange(data, 0, sz);
+        CommonUtility.verbose(copyOfRange, true);
+        SecondMessage sm = SecondMessage.getObjectFromString(new String(copyOfRange));
+        sm.verifyMessageHash();
+        CommonUtility.verbose(sm.toString(), true);
         byte[] payloadTwo = sm.getPayloadTwo();
+        CommonUtility.verbose(payloadTwo, true);
         String payloadTwoString = CommonUtility.decrypt(this.privateKey, payloadTwo, payloadTwo.length);
         SecondMessagePayload payloadT = SecondMessagePayload.getObjectFromString(payloadTwoString);
+        payloadT.verifyMessageHash();
+        CommonUtility.verbose(payloadT.toString(), true);
         if (payloadT.getN() == Nb) {
             key = payloadT.getSecretKey();
         }
@@ -97,5 +110,4 @@ public class ClientService extends Thread {
         this.buddy = fm.getSender();
         return key;
     }
-
 }

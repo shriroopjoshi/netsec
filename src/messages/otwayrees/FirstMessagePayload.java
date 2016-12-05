@@ -4,12 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 import java.io.StringReader;
+import messages.Message;
 
 /**
  *
  * @author shriroop
  */
-public class FirstMessagePayload {
+public class FirstMessagePayload extends Message {
 
     private final int Na;
     private final int Nc;

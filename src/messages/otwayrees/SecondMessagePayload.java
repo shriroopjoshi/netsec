@@ -7,13 +7,14 @@ import java.io.StringReader;
 import java.util.Base64;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import messages.Message;
 import utility.Constants;
 
 /**
  *
  * @author shriroop
  */
-public class SecondMessagePayload {
+public class SecondMessagePayload extends Message{
 
     private final int N;
     private final String secretKey;

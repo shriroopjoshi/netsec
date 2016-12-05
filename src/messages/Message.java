@@ -2,6 +2,7 @@ package messages;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import exceptions.TamperedMessageException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -9,7 +10,7 @@ import java.security.NoSuchAlgorithmException;
  *
  * @author shriroop
  */
-public class Message {
+public abstract class Message {
     
     protected String timestamp;
     protected String messageHash;
@@ -44,9 +45,12 @@ public class Message {
         return hash;
     }
     
-    public boolean verifyMessageHash() {
+    public boolean verifyMessageHash() throws TamperedMessageException {
         String hash = this.getMessageHash();
-        return hash.equalsIgnoreCase(messageHash);
+        if(!hash.equalsIgnoreCase(messageHash)) {
+            throw new TamperedMessageException();
+        }
+        return true;
     }
     
     public String getTimestamp() {
