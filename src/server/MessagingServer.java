@@ -141,7 +141,7 @@ public class MessagingServer {
         String finalMessage = null;
         DataInputStream in = new DataInputStream(socket.getInputStream());
         // This is a crime. I've hard coded the volume of buffer
-        byte[] message = new byte[2048];
+        byte[] message = new byte[65536];
         int size = in.read(message);
         CommonUtility.verbose(Arrays.copyOfRange(message, 0, size), true);
         finalMessage = CommonUtility.decrypt(privateKey, message, size);
@@ -170,8 +170,8 @@ public class MessagingServer {
 
     private boolean authenticateOtwayRees(Socket socket) throws IOException, TamperedMessageException {
         boolean authenticate = false;
-        byte[] payloadOne = new byte[2048];
-        byte[] payloadTwo = new byte[2048];
+        byte[] payloadOne = new byte[65536];
+        byte[] payloadTwo = new byte[65536];
         DataInputStream in = new DataInputStream(socket.getInputStream());
         int sizeOne = in.read(payloadOne);
         int sizeTwo = in.read(payloadTwo);

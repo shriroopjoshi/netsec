@@ -44,7 +44,7 @@ public class AuthenticationClient {
         fm.insertMessageHash();
         CommonUtility.verbose(fm.toString(), true);
         out.write(fm.toString().getBytes());
-        byte[] b = new byte[2048];
+        byte[] b = new byte[65536];
         int sz = in.read(b);
         CommonUtility.verbose(Arrays.copyOfRange(b, 0, sz), true);
         String msg = CommonUtility.decrypt(privateKey, b, sz);

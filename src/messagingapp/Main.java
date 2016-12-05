@@ -13,7 +13,11 @@ import utility.Constants;
 public class Main {
 
     public static void main(String[] args) throws IOException, TamperedMessageException {
-        Constants.VERBOSE = args.length == 2 & args[1].equalsIgnoreCase("verbose");
+        if(args.length >= 2) {
+            if(args[1].equalsIgnoreCase("verbose")) {
+                Constants.VERBOSE = true;
+            }
+        }
         if (args[0].equalsIgnoreCase("server")) {
             MessagingServer ms = new MessagingServer();
             ms.startServer();

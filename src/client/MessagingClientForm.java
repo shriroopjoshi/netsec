@@ -81,7 +81,7 @@ public class MessagingClientForm extends javax.swing.JFrame {
             while (true) {
                 try {
                     DataInputStream in = new DataInputStream(socket.getInputStream());
-                    byte[] b = new byte[2048];
+                    byte[] b = new byte[65536];
                     int sz = in.read(b);
                     if(Constants.VERBOSE) {
                         synchronized (jTextArea2) {

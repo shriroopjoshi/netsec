@@ -66,7 +66,7 @@ public class ClientService extends Thread {
         SecretKey key = null;
         DataInputStream in = new DataInputStream(socket.getInputStream());
         // Another crime!
-        byte[] message = new byte[2048];
+        byte[] message = new byte[65536];
         int size = in.read(message);
         CommonUtility.verbose(Arrays.copyOfRange(message, 0, size), true);
         String req = new String(message);

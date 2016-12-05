@@ -20,4 +20,8 @@ To start the client:
 java -jar dist/MessagingApp.jar client
 </code>
 
+To see the encrypted messages:
+<code>
+java -jar dist/MessagingApp.jar [client | server] verbose
+</code>
 All keys and configurations are stored in 'resources' directory
