@@ -89,6 +89,7 @@ public class MessagingServer {
         String username = null;
         String finalMessage = this.receive(socket);
         AuthenticationMessage am = AuthenticationMessage.getObjectFromString(finalMessage);
+        CommonUtility.verbose(am.toString(), true);
         if (!am.verifyMessageHash()) {
             throw new TamperedMessageException();
         }
